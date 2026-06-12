@@ -1,73 +1,53 @@
-# React + TypeScript + Vite
+# Job Pipeline Tracker
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A local-first job application tracker. Track your applications, see funnel health (Applied, Screen, Interview, Offer), and keep every byte of your job search data on your own machine.
 
-Currently, two official plugins are available:
+**Live demo: https://jt.dkvasnikov.ru**
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+Open the link, click "Load demo data", and explore. No account, no signup, no cookies.
 
-## React Compiler
+## Privacy by architecture
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+Job search data is sensitive: companies, stages, rejections, notes about interviewers. This app is built so that data cannot leak, because the app never receives it.
 
-## Expanding the ESLint configuration
+- All data lives in your browser via IndexedDB (Dexie).
+- There is no backend. The server only serves static files.
+- No network calls after page load: no analytics, no external fonts, no CDNs, no telemetry.
+- Backup and portability via JSON export and import.
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+Clearing your browser storage deletes your data. Export to JSON if you want a backup.
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+## Features
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+- Applications table: company, role, link, source, stage, dates, next action, notes. Add, edit, delete, sort, filter.
+- Funnel view: counts per stage with conversion percentages, rendered as hand-rolled SVG (no chart library).
+- JSON export and import for full backup and restore.
+- Demo mode: seed about 15 fictional applications with one click, clear everything with another.
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+## Stack
+
+- Vite, React, TypeScript
+- Dexie and dexie-react-hooks for IndexedDB persistence
+- No router, no chart library, minimal dependencies
+
+## Run locally
+
+```sh
+npm install
+npm run dev      # dev server
+npm run build    # type-check + production build to dist/
+npm run preview  # serve the production build locally
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Deployment
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+The production build is a static bundle (`dist/`) served by nginx on a VPS:
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+- `rsync` the `dist/` folder to the server.
+- An nginx server block serves the files with SPA-safe routing (`try_files ... /index.html`).
+- Cache policy: hashed assets in `/assets/` are cached long-term and immutable, `index.html` is never cached, so deploys take effect immediately.
+- HTTPS via Let's Encrypt (certbot), with HTTP redirected to HTTPS.
+
+## Credits
+
+Vibe-coded with [Claude Code](https://claude.com/claude-code). Product spec in [PRD.md](PRD.md).
