@@ -43,10 +43,26 @@ npm run preview  # serve the production build locally
 
 The production build is a static bundle (`dist/`) served by nginx on a VPS:
 
-- `rsync` the `dist/` folder to the server.
-- An nginx server block serves the files with SPA-safe routing (`try_files ... /index.html`).
+- An nginx server block serves the files with SPA-safe routing (`try_files ... /index.html`). See [deploy/nginx-jt.conf](deploy/nginx-jt.conf).
 - Cache policy: hashed assets in `/assets/` are cached long-term and immutable, `index.html` is never cached, so deploys take effect immediately.
-- HTTPS via Let's Encrypt (certbot), with HTTP redirected to HTTPS.
+- HTTPS is terminated at the edge with a valid certificate. Because port 443 on this host is already used by another service, nginx listens on a non-standard TLS port and the edge forwards to it. That detail is specific to this host; the app itself just needs any static web server.
+
+### One-time server provisioning
+
+```sh
+# copy the build up once, then run the provisioning script on the server
+bash scripts/server-setup.sh
+```
+
+[scripts/server-setup.sh](scripts/server-setup.sh) is idempotent: it creates the web root, an origin TLS cert, the nginx server block, and a firewall rule, then tests and reloads nginx. It does not touch any other site on the host.
+
+### Updating (one command)
+
+```sh
+./scripts/deploy.sh
+```
+
+[scripts/deploy.sh](scripts/deploy.sh) rebuilds the bundle, ships it, and reloads nginx. Override the SSH host with `DEPLOY_HOST=myhost ./scripts/deploy.sh`.
 
 ## Credits
 
