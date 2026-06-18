@@ -9,12 +9,16 @@ import { ApplicationForm } from './components/ApplicationForm';
 import { ApplicationsTable } from './components/ApplicationsTable';
 import './App.css';
 
-type SortKey = 'dateApplied' | 'lastActivity' | 'stage';
+type SortKey = 'company' | 'dateApplied' | 'lastActivity' | 'stage';
+type SortDir = 'asc' | 'desc';
 
 export default function App() {
   const applications = useLiveQuery(() => db.applications.toArray(), [], undefined);
-  const [filter, setFilter] = useState<'All' | Stage>('All');
+  const [stageFilter, setStageFilter] = useState<'All' | Stage>('All');
+  const [companyFilter, setCompanyFilter] = useState('');
+  const [nextActionFilter, setNextActionFilter] = useState('');
   const [sortKey, setSortKey] = useState<SortKey>('lastActivity');
+  const [sortDir, setSortDir] = useState<SortDir>('desc');
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Application | null>(null);
   const [message, setMessage] = useState('');
@@ -23,17 +27,27 @@ export default function App() {
   const loading = applications === undefined;
   const all = applications ?? [];
 
+  const companyQuery = companyFilter.trim().toLowerCase();
+  const nextActionQuery = nextActionFilter.trim().toLowerCase();
+
   const visible = all
-    .filter((a) => filter === 'All' || a.stage === filter)
+    .filter((a) => stageFilter === 'All' || a.stage === stageFilter)
+    .filter((a) => a.company.toLowerCase().includes(companyQuery))
+    .filter((a) => (a.nextAction ?? '').toLowerCase().includes(nextActionQuery))
     .sort((a, b) => {
-      if (sortKey === 'stage') {
+      let cmp: number;
+      if (sortKey === 'company') {
+        cmp = a.company.localeCompare(b.company);
+      } else if (sortKey === 'stage') {
         const order = (s: Stage) => {
           const r = progressRank(s);
           return r === -1 ? STAGES.indexOf(s) + 10 : r;
         };
-        return order(a.stage) - order(b.stage) || b.lastActivity.localeCompare(a.lastActivity);
+        cmp = order(a.stage) - order(b.stage) || a.lastActivity.localeCompare(b.lastActivity);
+      } else {
+        cmp = (a[sortKey] ?? '').localeCompare(b[sortKey] ?? '');
       }
-      return (b[sortKey] ?? '').localeCompare(a[sortKey] ?? '');
+      return sortDir === 'asc' ? cmp : -cmp;
     });
 
   const flash = (text: string) => {
@@ -129,8 +143,17 @@ export default function App() {
         <div className="table-controls">
           <h2>Applications ({visible.length})</h2>
           <label>
+            Company
+            <input
+              type="text"
+              value={companyFilter}
+              onChange={(e) => setCompanyFilter(e.target.value)}
+              placeholder="Filter by company"
+            />
+          </label>
+          <label>
             Stage
-            <select value={filter} onChange={(e) => setFilter(e.target.value as 'All' | Stage)}>
+            <select value={stageFilter} onChange={(e) => setStageFilter(e.target.value as 'All' | Stage)}>
               <option value="All">All</option>
               {STAGES.map((s) => (
                 <option key={s} value={s}>{s}</option>
@@ -138,11 +161,28 @@ export default function App() {
             </select>
           </label>
           <label>
+            Next action
+            <input
+              type="text"
+              value={nextActionFilter}
+              onChange={(e) => setNextActionFilter(e.target.value)}
+              placeholder="Filter by next action"
+            />
+          </label>
+          <label>
             Sort by
             <select value={sortKey} onChange={(e) => setSortKey(e.target.value as SortKey)}>
-              <option value="lastActivity">Last activity</option>
+              <option value="company">Company</option>
               <option value="dateApplied">Date applied</option>
+              <option value="lastActivity">Last activity</option>
               <option value="stage">Stage</option>
+            </select>
+          </label>
+          <label>
+            Direction
+            <select value={sortDir} onChange={(e) => setSortDir(e.target.value as SortDir)}>
+              <option value="desc">Descending</option>
+              <option value="asc">Ascending</option>
             </select>
           </label>
         </div>

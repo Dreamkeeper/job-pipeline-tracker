@@ -117,7 +117,8 @@
   white-space: nowrap;
 }
 
-.table-controls label select {
+.table-controls label select,
+.table-controls label input {
   width: auto;
   font-size: 0.8125rem;
   padding: 0.25rem 0.5rem;
